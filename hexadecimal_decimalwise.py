@@ -51,11 +51,32 @@ class DataLooker:
 
         self.datalist.append(data)
 
+    def process_all_data(self):
+        for i in range(len(self.datalines)):
+            self.process_data(i)
+
     def get_data(self, datum_index):
         return self.datalist[datum_index]
 
     def get_detector_data(self, datum_index, detector_id):
         return self.get_data(datum_index)["detector_data"][detector_id]
+
+    def print_detector_data(self, datum_index, detector_id):
+        datum = self.get_detector_data(datum_index, detector_id)
+        datestr = self.get_time_data(datum_index).date
+        amendedstr = datestr[2:4] + '/' + datestr[:2] + '/' + datestr[4:8]
+        print(f"Data from detector #{detector_id+1} on {amendedstr}")
+        if datum["rising"] > 0:
+            print("There was a rising particle in this datum...")
+            print(f"The mystery number is... {datum["rising"]}")
+            return
+        if datum["falling"] > 0:
+            print("There was a falling particle in this datum...")
+            print(f"The mystery number is... {datum["falling"]}")
+            return
+        
+        print("There was no particle at that time...")
+        
 
     def was_error(self, datum_index):
         return self.get_data(datum_index)["errors"] > 0
@@ -74,5 +95,11 @@ class DataLooker:
         return out
 
 
+
 decoder = DataLooker("EQUIP_12FEB2026_161338.txt")
-decoder.process_data()
+
+decoder.process_data(0)
+decoder.print_detector_data(0, 0)
+decoder.print_detector_data(0, 1)
+decoder.print_detector_data(0, 2)
+decoder.print_detector_data(0, 3)

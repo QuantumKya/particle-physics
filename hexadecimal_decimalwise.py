@@ -8,7 +8,7 @@ def to_decimal(hex: str) -> int:
 def bit_from_byte(num: int, bid: int) -> bool:
     if bid >= 8:
         return False
-    return not bool((num >> bid) % 2)
+    return bool(num >> bid)
 
 class DataLooker:
     def __init__(self, filename):
@@ -38,6 +38,7 @@ class DataLooker:
     def process_data(self, i):
         data: dict = {}
         words: list[str] = self.datalines[i].split(' ')
+        print(*words)
         
         def get_word_val(i: int) -> int:
             return to_decimal(words[i])
@@ -45,12 +46,13 @@ class DataLooker:
         def get_data_block(i: int) -> dict:
             rising_edge_data = get_word_val(i)
             falling_edge_data = get_word_val(i+1)
+            print(rising_edge_data, falling_edge_data)
             
             def data_from_byte(byt: int) -> dict:
                 return {
                     "happened": bit_from_byte(byt, 5),
                     "new_trigger": bit_from_byte(byt, 7),
-                    "tmc": byt % 32,
+                    "tmc": byt & 15,
                 }
             
             return {
@@ -70,16 +72,16 @@ class DataLooker:
         
         # time and date information
         dateinfo = words[11]
-        day = str(to_decimal(dateinfo[:2]))
-        month = str(to_decimal(dateinfo[2:4]))
-        year = str(to_decimal(dateinfo[4:6]))
+        day = dateinfo[0:2]
+        month = dateinfo[2:4]
+        year = dateinfo[4:6]
         data["date"] = f"{day}/{month}/{year}"
         
         timedata = words[10]
-        hour = str(to_decimal(timedata[:2]))
-        minute = str(to_decimal(timedata[2:4]))
-        second = str(to_decimal(timedata[4:6]))
-        millisecond = str(to_decimal(timedata[7:10]))
+        hour = timedata[0:2]
+        minute = timedata[2:4]
+        second = timedata[4:6]
+        millisecond = timedata[7:10]
         
         data["clock_check_time"] = {
             "internal": get_word_val(9),
@@ -110,18 +112,20 @@ class DataLooker:
     def print_detector_data(self, datum_index, detector_id):
         datum = self.get_detector_data(datum_index, detector_id)
         datestr = self.get_time_data(datum_index)["date"]
+        timestr = self.get_time_data(datum_index)["clock_check_time"]["utc"]
         print(f"Data from detector #{detector_id+1} on {datestr}:")
+        print(f"Time (UTC): {timestr}")
         
         def print_from_datum(section_name: str) -> bool:
             dat = datum[section_name]
+            print("\tThere was " + ("a " if dat["happened"] else "no ") + section_name + " particle in this datum.")
+            
             if dat["happened"]:
-                print("\tThere was a " + section_name + " particle in this datum.")
                 print("\tIt was " + ("" if dat["new_trigger"] else "not ") + "a new trigger.")
                 print(f"\tThe TMC was {dat["tmc"]} ms.")
-                print('')
-                return True
-            print("\tThere was no " + section_name + " particle in this datum.")
-            return False
+            
+            print('')
+            return dat["happened"]
         
         print_from_datum("rising")
         print_from_datum("falling")
@@ -140,7 +144,7 @@ class DataLooker:
         out = {}
         for key in ["date", "internal_time", "ppi_gps_time_difference"]:
             out[key] = datum[key]
-        out["gps_clock_check"] = datum["clock_check_time"]
+        out["clock_check_time"] = datum["clock_check_time"]
         
         return out
 

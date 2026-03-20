@@ -6,10 +6,9 @@ def to_decimal(hex: str) -> int:
     return num
 
 def bit_from_byte(num: int, bid: int) -> bool:
-    if bid >= 8:
-        return False
-    return bool(num >> bid)
+    return 0 <= bid < 8 and bool((num >> bid) & 1)
 
+# LOOK OVER THE DATA STUFF, SOMETHING MIGHT BE WRONG
 class DataLooker:
     def __init__(self, filename):
         self.datalist: list[dict] = []
